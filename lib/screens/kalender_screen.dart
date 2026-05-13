@@ -1,7 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:adhan/adhan.dart';
+import '../services/location_service.dart';
+import '../services/prayer_time_service.dart';
 
-class KalenderScreen extends StatelessWidget {
+class KalenderScreen extends StatefulWidget {
   const KalenderScreen({super.key});
+
+  @override
+  State<KalenderScreen> createState() => _KalenderScreenState();
+}
+
+class _KalenderScreenState extends State<KalenderScreen> {
+  String _locationName = 'Mencari lokasi...';
+  Position? _currentPosition;
+  DateTime _currentMonth = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocation();
+  }
+
+  Future<void> _loadLocation() async {
+    try {
+      Position? position = await LocationService.getCurrentPosition();
+      if (position != null) {
+        String address = await LocationService.getAddressFromLatLng(position);
+        if (mounted) {
+          setState(() {
+            _currentPosition = position;
+            _locationName = address;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _locationName = 'Gagal mendapat lokasi';
+        });
+      }
+    }
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
+    });
+  }
+
+  void _previousMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
+    });
+  }
+
+  String _getMonthName(int month) {
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    return months[month - 1];
+  }
+
+  String _getDayName(int weekday) {
+    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jum\'at', 'Sabtu', 'Minggu'];
+    return days[weekday - 1];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,15 +76,18 @@ class KalenderScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
               child: Row(
-                children: const [
-                  Icon(Icons.location_on_outlined, color: Color(0xFF10463A)),
-                  SizedBox(width: 8),
-                  Text(
-                    'Jakarta, Indonesia',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF10463A),
+                children: [
+                  const Icon(Icons.location_on_outlined, color: Color(0xFF10463A)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _locationName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF10463A),
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -44,19 +109,19 @@ class KalenderScreen extends StatelessWidget {
                         ),
                         child: IconButton(
                           icon: const Icon(Icons.chevron_left, size: 20),
-                          onPressed: () {},
+                          onPressed: _previousMonth,
                           constraints: const BoxConstraints(),
                           padding: const EdgeInsets.all(8),
                         ),
                       ),
                       const SizedBox(width: 24),
                       Row(
-                        children: const [
-                          Icon(Icons.calendar_month, color: Color(0xFF10463A), size: 20),
-                          SizedBox(width: 8),
+                        children: [
+                          const Icon(Icons.calendar_month, color: Color(0xFF10463A), size: 20),
+                          const SizedBox(width: 8),
                           Text(
-                            'Februari 2026',
-                            style: TextStyle(
+                            '${_getMonthName(_currentMonth.month)} ${_currentMonth.year}',
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
@@ -72,28 +137,12 @@ class KalenderScreen extends StatelessWidget {
                         ),
                         child: IconButton(
                           icon: const Icon(Icons.chevron_right, size: 20),
-                          onPressed: () {},
+                          onPressed: _nextMonth,
                           constraints: const BoxConstraints(),
                           padding: const EdgeInsets.all(8),
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Ramadan 1447 H',
-                      style: TextStyle(
-                        color: Color(0xFF10463A),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -101,41 +150,34 @@ class KalenderScreen extends StatelessWidget {
 
             // Days List
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                children: [
-                  _buildDayCard(
-                    date: '19',
-                    day: 'Kamis',
-                    hijri: 'Ramadan 1',
-                    isToday: false,
-                    schedules: ['04:41', '05:53', '12:04', '15:10', '18:08', '19:17'],
-                  ),
-                  _buildDayCard(
-                    date: '20',
-                    day: "Jum'at",
-                    hijri: 'Ramadan 2',
-                    isToday: true,
-                    activeScheduleIndex: 3, // Ashar
-                    schedules: ['04:40', '05:53', '12:03', '15:11', '18:07', '19:16'],
-                  ),
-                  _buildDayCard(
-                    date: '21',
-                    day: 'Sabtu',
-                    hijri: 'Ramadan 3',
-                    isToday: false,
-                    schedules: ['04:40', '05:53', '12:03', '15:11', '18:07', '19:16'],
-                  ),
-                  _buildDayCard(
-                    date: '22',
-                    day: 'Minggu',
-                    hijri: 'Ramadan 4',
-                    isToday: false,
-                    schedules: ['04:40', '05:52', '12:03', '15:11', '18:06', '19:15'],
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
+              child: _currentPosition == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      itemCount: DateUtils.getDaysInMonth(_currentMonth.year, _currentMonth.month),
+                      itemBuilder: (context, index) {
+                        int day = index + 1;
+                        DateTime date = DateTime(_currentMonth.year, _currentMonth.month, day);
+                        bool isToday = date.year == DateTime.now().year && date.month == DateTime.now().month && date.day == DateTime.now().day;
+                        
+                        PrayerTimes pt = PrayerTimeService.getPrayerTimes(_currentPosition!.latitude, _currentPosition!.longitude, date);
+                        List<String> schedules = [
+                          PrayerTimeService.formatTime(pt.fajr),
+                          PrayerTimeService.formatTime(pt.sunrise),
+                          PrayerTimeService.formatTime(pt.dhuhr),
+                          PrayerTimeService.formatTime(pt.asr),
+                          PrayerTimeService.formatTime(pt.maghrib),
+                          PrayerTimeService.formatTime(pt.isha),
+                        ];
+
+                        return _buildDayCard(
+                          date: day.toString(),
+                          day: _getDayName(date.weekday),
+                          isToday: isToday,
+                          schedules: schedules,
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -146,9 +188,7 @@ class KalenderScreen extends StatelessWidget {
   Widget _buildDayCard({
     required String date,
     required String day,
-    required String hijri,
     required bool isToday,
-    int? activeScheduleIndex,
     required List<String> schedules,
   }) {
     return Container(
@@ -185,7 +225,7 @@ class KalenderScreen extends StatelessWidget {
                   width: 6,
                   height: 6,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFFFB300), // Yellow dot
+                    color: Color(0xFFFFB300),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -200,15 +240,7 @@ class KalenderScreen extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Text(
-                hijri,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
-              if (isToday) ...[
-                const SizedBox(width: 8),
+              if (isToday)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -224,7 +256,6 @@ class KalenderScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -232,18 +263,18 @@ class KalenderScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildTimeColumn('Subuh', schedules[0], isActive: activeScheduleIndex == 0),
-              _buildTimeColumn('Terbit', schedules[1], isActive: activeScheduleIndex == 1),
-              _buildTimeColumn('Dzuhur', schedules[2], isActive: activeScheduleIndex == 2),
+              _buildTimeColumn('Subuh', schedules[0]),
+              _buildTimeColumn('Terbit', schedules[1]),
+              _buildTimeColumn('Dzuhur', schedules[2]),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildTimeColumn('Ashar', schedules[3], isActive: activeScheduleIndex == 3, isHighlight: isToday && activeScheduleIndex == 3),
-              _buildTimeColumn('Maghrib', schedules[4], isActive: activeScheduleIndex == 4),
-              _buildTimeColumn('Isya', schedules[5], isActive: activeScheduleIndex == 5),
+              _buildTimeColumn('Ashar', schedules[3]),
+              _buildTimeColumn('Maghrib', schedules[4]),
+              _buildTimeColumn('Isya', schedules[5]),
             ],
           ),
         ],
@@ -251,14 +282,14 @@ class KalenderScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTimeColumn(String label, String time, {bool isActive = false, bool isHighlight = false}) {
+  Widget _buildTimeColumn(String label, String time) {
     return Container(
       width: 90,
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: isHighlight ? const Color(0xFFFFF8E1) : (isActive ? Colors.grey[100] : Colors.transparent),
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-        border: isHighlight ? Border.all(color: const Color(0xFFFFCC80)) : Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: Colors.grey.shade100),
       ),
       child: Column(
         children: [
@@ -272,10 +303,10 @@ class KalenderScreen extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             time,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              fontWeight: isHighlight || isActive ? FontWeight.bold : FontWeight.w600,
-              color: isHighlight ? const Color(0xFFE65100) : Colors.black87,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
         ],
